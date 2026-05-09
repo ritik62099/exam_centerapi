@@ -36,7 +36,6 @@
 // });
 
 
-
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -50,17 +49,34 @@ const app = express();
 // Database connect
 connectDB();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://exam-center-frontend.vercel.app",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 // CORS setup
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      process.env.CLIENT_URL,
-    ],
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Postman, mobile app, server-to-server requests ke liye
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log("Blocked by CORS:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
