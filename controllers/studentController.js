@@ -1,3 +1,5 @@
+
+
 // const Student = require("../models/Student");
 // const generateToken = require("../utils/generateToken");
 
@@ -15,7 +17,10 @@
 //       data: student,
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -32,7 +37,10 @@
 //       data: students,
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -43,12 +51,22 @@
 //       .populate("institute", "name code")
 //       .populate("batch", "name courseName");
 
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
+
 //     res.json({
 //       success: true,
 //       data: student,
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -60,31 +78,54 @@
 //       data.photo = `/uploads/students/${req.file.filename}`;
 //     }
 
+//     // Edit ke time password ko update nahi kar rahe
 //     delete data.password;
 
 //     const student = await Student.findByIdAndUpdate(req.params.id, data, {
 //       new: true,
+//       runValidators: true,
 //     }).select("-password");
+
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
 
 //     res.json({
 //       success: true,
+//       message: "Student updated successfully",
 //       data: student,
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
 // const deleteStudent = async (req, res) => {
 //   try {
-//     await Student.findByIdAndDelete(req.params.id);
+//     const student = await Student.findByIdAndDelete(req.params.id);
+
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
 
 //     res.json({
 //       success: true,
 //       message: "Student deleted successfully",
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -124,7 +165,10 @@
 //       },
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -135,12 +179,22 @@
 //       .populate("institute", "name code")
 //       .populate("batch", "name courseName");
 
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student profile not found",
+//       });
+//     }
+
 //     res.json({
 //       success: true,
 //       data: student,
 //     });
 //   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
 //   }
 // };
 
@@ -157,26 +211,35 @@
 
 
 
+
 const Student = require("../models/Student");
 const generateToken = require("../utils/generateToken");
 
 const createStudent = async (req, res) => {
   try {
-    const photo = req.file ? `/uploads/students/${req.file.filename}` : "";
+    const photo = req.file ? req.file.path : "";
 
     const student = await Student.create({
       ...req.body,
       photo,
     });
 
+    const studentData = await Student.findById(student._id)
+      .select("-password")
+      .populate("institute", "name code")
+      .populate("batch", "name courseName");
+
     res.status(201).json({
       success: true,
-      data: student,
+      message: "Student created successfully",
+      data: studentData,
     });
   } catch (error) {
+    console.log("Create student error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student create nahi ho paya",
     });
   }
 };
@@ -194,9 +257,11 @@ const getStudents = async (req, res) => {
       data: students,
     });
   } catch (error) {
+    console.log("Get students error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Students fetch nahi ho paye",
     });
   }
 };
@@ -220,9 +285,11 @@ const getStudentById = async (req, res) => {
       data: student,
     });
   } catch (error) {
+    console.log("Get student by id error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student detail fetch nahi ho paya",
     });
   }
 };
@@ -232,16 +299,21 @@ const updateStudent = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      data.photo = `/uploads/students/${req.file.filename}`;
+      data.photo = req.file.path;
     }
 
-    // Edit ke time password ko update nahi kar rahe
-    delete data.password;
+    // Edit ke time blank password update nahi karna
+    if (!data.password || data.password.trim() === "") {
+      delete data.password;
+    }
 
     const student = await Student.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
-    }).select("-password");
+    })
+      .select("-password")
+      .populate("institute", "name code")
+      .populate("batch", "name courseName");
 
     if (!student) {
       return res.status(404).json({
@@ -256,9 +328,11 @@ const updateStudent = async (req, res) => {
       data: student,
     });
   } catch (error) {
+    console.log("Update student error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student update nahi ho paya",
     });
   }
 };
@@ -279,9 +353,11 @@ const deleteStudent = async (req, res) => {
       message: "Student deleted successfully",
     });
   } catch (error) {
+    console.log("Delete student error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student delete nahi ho paya",
     });
   }
 };
@@ -290,7 +366,9 @@ const loginStudent = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const student = await Student.findOne({ username });
+    const student = await Student.findOne({ username })
+      .populate("institute", "name code")
+      .populate("batch", "name courseName");
 
     if (!student || !(await student.matchPassword(password))) {
       return res.status(401).json({
@@ -316,15 +394,18 @@ const loginStudent = async (req, res) => {
         rollNumber: student.rollNumber,
         registrationNumber: student.registrationNumber,
         mobileNumber: student.mobileNumber,
+        photo: student.photo,
         institute: student.institute,
         batch: student.batch,
         role: "student",
       },
     });
   } catch (error) {
+    console.log("Student login error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student login nahi ho paya",
     });
   }
 };
@@ -348,9 +429,11 @@ const getStudentProfile = async (req, res) => {
       data: student,
     });
   } catch (error) {
+    console.log("Student profile error:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Student profile fetch nahi ho paya",
     });
   }
 };
