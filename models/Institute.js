@@ -13,6 +13,10 @@ const instituteSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    logo: {
+      type: String,
+      default: "",
+    },
     address: {
       type: String,
       default: "",

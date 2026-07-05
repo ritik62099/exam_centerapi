@@ -35,7 +35,6 @@
 //   console.log(`Server running on port ${PORT}`);
 // });
 
-
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -59,7 +58,6 @@ const allowedOrigins = [
 // CORS setup
 const corsOptions = {
   origin: function (origin, callback) {
-    // Postman, mobile app, server-to-server requests ke liye
     if (!origin) {
       return callback(null, true);
     }
@@ -78,8 +76,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ✅ IMPORTANT: Body size limit badhao (PDF base64 ke liye)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -96,6 +95,7 @@ app.use("/api/students", require("./routes/studentRoutes"));
 app.use("/api/exams", require("./routes/examRoutes"));
 app.use("/api/submissions", require("./routes/submissionRoutes"));
 app.use("/api/results", require("./routes/resultRoutes"));
+app.use("/api/emails", require("./routes/emailRoutes"));
 
 // Error middleware
 app.use(require("./middleware/errorMiddleware"));
